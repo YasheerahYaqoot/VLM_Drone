@@ -16,12 +16,13 @@ from recalculate_to_latlon import recalculate_coordinates, percentage_to_lat_lon
 
 #import molmo_inference
 # Initialize the ChatGPT-4 model using ChatOpenAI
+llm = ChatOpenAI(api_key='', model_name='gpt-4o', temperature=0)
 
 print(torch.cuda.is_available())
 
 LIST_OF_ANSWERS = []
 
-NUMBER_OF_SAMPLES = 4 #len(os.listdir('/VLM_Drone/dataset_images'))
+NUMBER_OF_SAMPLES = 15 #len(os.listdir('/VLM_Drone/dataset_images'))
 print('NUMBER_OF_SAMPLES',NUMBER_OF_SAMPLES)
 
 # load the processor
@@ -59,7 +60,7 @@ step_1_prompt = PromptTemplate(input_variables=["command"], template=step_1_temp
 # Instead of using RunnableSequence, we simply use pipe (|)
 step_1_chain = step_1_prompt | llm
 
-print(step_1_chain)
+#print(step_1_chain)
 
 
 example_objects = '''
@@ -85,19 +86,22 @@ def find_objects(json_input, example_objects):
     for i in range(0,len(find_objects_json_input_2["object_types"])):
         #print(find_objects_json_input_2["object_types"][i]) #Show in console the type of an object
         sample = find_objects_json_input_2["object_types"][i]
-        search_string = search_string + sample + ", "
+        search_string = search_string + sample #+ ", "
 
+
+    print('\n')
     # What are we looking for?
-    print(search_string)
+    print('sample ', sample)
+    print('\n')
 
     for i in range(1, NUMBER_OF_SAMPLES):
         print(i)
-        string = '/dataset_images/' + str(i) + '.jpg' 
+        string = '/new_data/' + str(i) + '.jpg' 
     #process the image and text
         inputs = processor.process(
-            images=[Image.open('dataset_images/' + str(i) + '.jpg')],
+            images=[Image.open('new_data/' + str(i) + '.jpg')],
             text=f'''
-            This is the satellite image of a city. Please, point all the {search_string}. 
+            This is the satellite image of a city. Please, point all the next objects: {sample} 
             '''
         )
 
@@ -121,9 +125,13 @@ def find_objects(json_input, example_objects):
         
 
         # print the generated text
-        print('molmo_output =', generated_text)
+        #print('molmo_output =', generated_text)
 
         parsed_points = parse_points(generated_text)
+        print('\n')
+
+        print(parsed_points)
+        print('\n')
 
         image_number = i
 
@@ -131,7 +139,7 @@ def find_objects(json_input, example_objects):
         coordinates_dict = read_coordinates_from_csv(csv_file_path)
 
         result_coordinates = recalculate_coordinates(parsed_points, image_number, coordinates_dict)
-        draw_dots_and_lines_on_image(f'dataset_images/{i}.jpg', parsed_points, output_path=f'identified{i}.png')
+        draw_dots_and_lines_on_image(f'new_data/{i}.jpg', parsed_points, output_path=f'identified_new_data/identified{i}.jpg')
 
         print(result_coordinates)
 
@@ -190,7 +198,7 @@ def generate_drone_mission(command):
     return flight_plan_response.content  # Return the response text from AIMessage
 
 # Example usage
-command = """Create a flight plan for the quadcopter to fly around each of the stadium at the height 100m return to home and land at the take-off point."""
+command = """Create a flight plan for the quadcopter to fly around each of the building at the height 100m return to home and land at the take-off point."""
 
 
 # Run the full pipeline
